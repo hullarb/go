@@ -295,8 +295,34 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 	w.WriteHeader(code)
 
 	if r.Method != "HEAD" {
-		io.CopyN(w, sendContent, sendSize)
+		if err := copyNIgnoreWriteError(w, sendContent, sendSize); err != nil {
+			logf(r, "http: error copy content of %s: %v", name, err)
+		}
 	}
+}
+
+// errorSaverReader wraps an io.Reader and saves the error returned
+// by the last invocation of Read in err
+type errorSaverReader struct {
+	r   io.Reader
+	err error
+}
+
+func (r *errorSaverReader) Read(b []byte) (int, error) {
+	var n int
+	n, r.err = r.r.Read(b)
+	return n, r.err
+}
+
+// copyNIgnoreWriteError copies n bytes (or until an error) from src to dst.
+// It returns only the errors encountered during reading from src.
+func copyNIgnoreWriteError(dst io.Writer, src io.Reader, n int64) error {
+	er := &errorSaverReader{r: src}
+	_, err := io.CopyN(dst, er, n)
+	if err == io.EOF || err == er.err {
+		return err
+	}
+	return nil
 }
 
 // scanETag determines if a syntactically valid ETag is present at s. If so,
