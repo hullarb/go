@@ -559,6 +559,8 @@ func srcIsRegularFile(src io.Reader) (isRegular bool, err error) {
 		return fi.Mode().IsRegular(), nil
 	case *io.LimitedReader:
 		return srcIsRegularFile(v.R)
+	case *errorSaverReader:
+		return srcIsRegularFile(v.r)
 	default:
 		return
 	}
