@@ -45,7 +45,7 @@ var useFakeNetwork = js.Global().Get("fetch").IsUndefined()
 
 // RoundTrip implements the RoundTripper interface using the WHATWG Fetch API.
 func (t *Transport) RoundTrip(req *Request) (*Response, error) {
-	if useFakeNetwork {
+	if useFakeNetwork || t != DefaultTransport {
 		return t.roundTrip(req)
 	}
 
